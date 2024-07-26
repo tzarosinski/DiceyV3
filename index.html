@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dicey Dungeons Inspired Game</title>
+    <style>
+     body {
+    background-image: url('https://codecombat.com/file/hackstack-images/619818de2d039000242b1741/66267776131882bc157c0d6b/img-RJca9WRLmHxNJnJPKWKr74xP.png ');
+    background-size: cover;
+    background-attachment: fixed;
+    
+}
+        .dice, .ability-card, .enemyHealth, .playerHealth, .trophy-log {
+            border: 1px solid black;
+            padding: 10px;
+            margin: 5px;
+            text-align: center;
+            background-color: rgb(250, 251, 217);
+            border-radius: 10px;
+            
+        }
+
+        .dice {
+            cursor: grab;
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background-color: rgb(250, 251, 217)
+        }
+
+        .ability-card {
+            cursor: pointer;
+            margin-bottom: 10px;
+            
+            background-color: rgb(250, 251, 217)
+           
+        }
+
+        .enemyHealth, .playerHealth {
+            margin-top: 20px;
+            border: 1px solid black;
+            padding: 10px;
+            margin: 5px;
+            text-align: center;
+            background-color: rgb(250, 251, 217);
+            border-radius: 10px;
+           
+        }
+
+        .dice.disabled {
+            opacity: 0.5;
+            border: 2px solid red;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .shake {
+            animation: shake 0.5s;
+            animation-iteration-count: 1;
+        }
+
+        .health-bar-container {
+            width: 200px;
+            height: 20px;
+            background-color: #ddd;
+            margin: 10px 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .health-bar {
+            height: 100%;
+            width: 100%;
+            transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out;
+        }
+
+        .health-text {
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+<div id="background">
+    <div id="board">
+    <div id="diceArea"></div>
+    <div id="abilityCards">
+        <div class="ability-card" data-requirement="odd" data-used="false">Oddslam:Needs odd <br> Dice dmg</div>
+        <div class="ability-card" id="smashCard" data-countdown="10" data-used="false">Smash 10<br> Deal 10 damage.</div>
+        <div class="ability-card" data-requirement="six" data-used="false">Lucky Six: Needs 6 <br> Adds an additional dice to the pool for the next turn.</div>
+        <div class="ability-card" data-requirement="heal" data-used="false">Heal: Max 3 <br> heal dice health. Once per turn.</div>
+        <div class="ability-card" data-requirement="megastrike" data-used="false">Megastrike: Max: 4 <br> Dice x 2 dmg Once per turn.</div>
+        <div class="ability-card" data-requirement="sword" data-used="false"> Power Sword: <br>Dice + 1 dmg Once per turn.</div>
+        <div class="ability-card" data-requirement="throw" data-used="false">Throw dice: deal 1 damage</div>
+    </div>
+    
+    <div id="enemy">Enemy: <span id="enemyIcon">👾</span></div>
+    <div id="enemyHealth">
+        <div class="health-bar-container">
+            <div id="enemyHealthBar" class="health-bar"></div>
+        </div>
+        <div class="health-text">Enemy Health: <span id="enemyHp">10</span></div>
+    </div>
+    <div id="playerHealth">
+        <div class="health-bar-container">
+            <div id="playerHealthBar" class="health-bar"></div>
+        </div>
+        <div class="health-text">Player Health: <span id="playerHp">30</span></div>
+    </div>
+    <button id="endTurn">End Turn</button>
+    <div id="trophyLog" class="trophy-log">Trophy Log:</div>
+</div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const diceArea = document.getElementById('diceArea');
+            const enemyHpElement = document.getElementById('enemyHp');
+            const playerHpElement = document.getElementById('playerHp');
+            const smashCard = document.getElementById('smashCard');
+            const enemyHealthBar = document.getElementById('enemyHealthBar');
+            const playerHealthBar = document.getElementById('playerHealthBar');
+            const maxEnemyHp = 10;
+            const maxPlayerHp = 30;
+            let enemyHp = 10;
+            let playerHp = 30;
+            let diceCount = 3; // Initial dice count
+
+            function updateHealthBar(healthBar, currentHp, maxHp) {
+                const percentage = (currentHp / maxHp) * 100;
+                healthBar.style.width = percentage + '%';
+                
+                if (percentage >= 90) {
+                    healthBar.style.backgroundColor = 'green';
+                } else if (percentage >= 70) {
+                    healthBar.style.backgroundColor = 'yellow';
+                } else if (percentage >= 50) {
+                    healthBar.style.backgroundColor = 'orange';
+                } else {
+                    healthBar.style.backgroundColor = 'red';
+                }
+            }
+
+            function updateHealth() {
+                enemyHpElement.textContent = enemyHp;
+                playerHpElement.textContent = playerHp;
+                updateHealthBar(enemyHealthBar, enemyHp, maxEnemyHp);
+                updateHealthBar(playerHealthBar, playerHp, maxPlayerHp);
+            }
+
+            function rollDice() {
+                diceArea.innerHTML = ''; // Clear previous dice
+                for (let i = 0; i < diceCount; i++) {
+                    const diceValue = Math.ceil(Math.random() * 6);
+                    const diceElement = document.createElement('div');
+                    diceElement.className = 'dice';
+                    diceElement.textContent = diceValue;
+                    diceElement.setAttribute('draggable', true);
+                    diceElement.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', diceValue);
+                        e.dataTransfer.setData('text/sourceId', e.target.id); // Track the source ID
+                    });
+                    diceElement.id = `dice-${i}`; // Unique ID for each dice
+                    diceArea.appendChild(diceElement);
+                }
+
+                // Randomly disable a dice (1 in 3 chance)
+                if (Math.random() < 1/3) {
+                    const randomDiceIndex = Math.floor(Math.random() * diceCount);
+                    const disabledDice = document.getElementById(`dice-${randomDiceIndex}`);
+                    disabledDice.classList.add('disabled');
+                    disabledDice.setAttribute('data-disabled', 'true');
+                }
+
+                // Reset ability card usage for the new turn
+                document.querySelectorAll('.ability-card').forEach(card => {
+                    card.dataset.used = "false";
+                });
+            }
+
+            document.querySelectorAll('.ability-card').forEach(card => {
+                card.addEventListener('dragover', (e) => e.preventDefault());
+                card.addEventListener('drop', (e) => {
+                    const diceValue = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                    const sourceId = e.dataTransfer.getData('text/sourceId');
+                    const sourceDice = document.getElementById(sourceId);
+                    const cardRequirement = card.dataset.requirement;
+                    const cardUsed = card.dataset.used === "true";
+
+                    if (!cardUsed) {
+                        if (sourceDice.getAttribute('data-disabled') === 'true') {
+                            sourceDice.classList.add('shake');
+                            setTimeout(() => {
+                                playerHp -= 2;
+                                updateHealth();
+                                checkPlayerHealth();
+                            }, 500);
+                        }
+
+                        if (cardRequirement === 'heal' && diceValue <= 3) {
+                            playerHp += diceValue; // Heal the player
+                            card.dataset.used = "true";
+                        } else if (cardRequirement === 'megastrike' && diceValue <= 4) {
+                            enemyHp -= diceValue * 2; // Double damage
+                            card.dataset.used = "true";
+                        } else if (cardRequirement === 'odd' && diceValue % 2 !== 0) {
+                            enemyHp -= diceValue;
+                        } else if (cardRequirement === 'six' && diceValue === 6) {
+                            diceCount++; // Increase dice count for the next turn
+                        } else if (cardRequirement === 'sword') {
+                            enemyHp -= diceValue + 1;
+                            card.dataset.used = "true"
+                        } else if (cardRequirement === 'throw') {
+                            enemyHp -= 1;
+                        } else if (card.id === 'smashCard') {
+                            let countdown = parseInt(card.dataset.countdown, 10);
+                            countdown -= diceValue;
+                            if (countdown <= 0) {
+                                enemyHp -= 10; // Deal damage when countdown reaches 0
+                                countdown = 10; // Reset countdown
+                            }
+                            card.dataset.countdown = countdown; // Update countdown
+                            card.textContent = `Smash: Countdown ${countdown}. Place any dice to reduce countdown. When countdown reaches 0, deal 10 damage.`;
+                        }
+                        sourceDice.remove();
+                        updateHealth();
+                        checkEnemyHealth();
+                        checkPlayerHealth();
+                    }
+                });
+            });
+
+            document.getElementById('endTurn').addEventListener('click', () => {
+                const damage = Math.floor(Math.random() * 3) + 2; // Random damage between 2 and 4
+                playerHp -= damage;
+                updateHealth();
+                checkPlayerHealth();
+                rollDice(); // Automatically roll new dice for the player's next turn
+            });
+
+            function checkEnemyHealth() {
+                if (enemyHp <= 0) {
+                    alert('Enemy defeated!');
+                    addTrophy(document.getElementById('enemyIcon').textContent);
+                    enemyHp = 10; // Reset enemy health
+                    updateHealth();
+                    rollDice(); // Roll dice for the new turn
+                }
+            }
+
+            function addTrophy(icon) {
+                const trophy = document.createElement('span');
+                trophy.textContent = icon + " ";
+                document.getElementById('trophyLog').appendChild(trophy);
+            }
+
+            function checkPlayerHealth() {
+                if (playerHp <= 0) {
+                    alert('Game Over!');
+                    document.getElementById('endTurn').style.display = 'none'; // Prevent further actions
+                }
+            }
+
+            rollDice(); // Initial dice roll at the start of the game
+            updateHealth(); // Initial health bar update
+        });
+    </script>
+</body>
+</html>
