@@ -19,7 +19,7 @@
             border-radius: 10px;
             
         }
-
+      
         .dice {
             cursor: grab;
             display: inline-block;
@@ -104,8 +104,7 @@
         <div class="ability-card" data-requirement="sword" data-used="false"> Power Sword: <br>Dice + 1 dmg Once per turn.</div>
         <div class="ability-card" data-requirement="throw" data-used="false">Throw dice: deal 1 damage</div>
     </div>
-    
-    <div id="enemy">Enemy: <span id="enemyIcon">👾</span></div>
+    <div id="enemy">Enemy: <span id="enemyIcon"></span></div>    
     <div id="enemyHealth">
         <div class="health-bar-container">
             <div id="enemyHealthBar" class="health-bar"></div>
@@ -131,6 +130,13 @@
             const playerHealthBar = document.getElementById('playerHealthBar');
             const maxEnemyHp = 10;
             const maxPlayerHp = 30;
+            const enemyIcons = [
+    'https://game-icons.net/icons/ffffff/000000/1x1/delapouite/spiked-dragon-head.svg',
+    'https://game-icons.net/icons/ffffff/000000/1x1/delapouite/bullet-bill.svg',
+    'https://game-icons.net/icons/ffffff/000000/1x1/delapouite/ogre.svg',
+    'https://game-icons.net/icons/ffffff/000000/1x1/delapouite/mummy-head.svg',
+    'https://game-icons.net/icons/ffffff/000000/1x1/lorc/daemon-skull.svg'
+];
             let enemyHp = 10;
             let playerHp = 30;
             let diceCount = 3; // Initial dice count
@@ -248,20 +254,22 @@
             });
 
             function checkEnemyHealth() {
-                if (enemyHp <= 0) {
-                    alert('Enemy defeated!');
-                    addTrophy(document.getElementById('enemyIcon').textContent);
-                    enemyHp = 10; // Reset enemy health
-                    updateHealth();
-                    rollDice(); // Roll dice for the new turn
-                }
-            }
-
-            function addTrophy(icon) {
-                const trophy = document.createElement('span');
-                trophy.textContent = icon + " ";
-                document.getElementById('trophyLog').appendChild(trophy);
-            }
+    if (enemyHp <= 0) {
+        alert('Enemy defeated!');
+        const randomIcon = enemyIcons[Math.floor(Math.random() * enemyIcons.length)];
+        addTrophy(`<img src="${randomIcon}" alt="Enemy Icon" width="20" height="20">`);
+        enemyHp = 10; // Reset enemy health
+        enemyHpElement.textContent = enemyHp;
+        rollDice(); // Roll dice for the new turn
+        // Update the enemy icon
+        document.getElementById('enemyIcon').innerHTML = `<img src="${randomIcon}" alt="Enemy Icon" width="50" height="50">`;
+    }
+}
+function addTrophy(iconHtml) {
+    const trophy = document.createElement('span');
+    trophy.innerHTML = iconHtml + " ";
+    document.getElementById('trophyLog').appendChild(trophy);
+}
 
             function checkPlayerHealth() {
                 if (playerHp <= 0) {
@@ -269,7 +277,12 @@
                     document.getElementById('endTurn').style.display = 'none'; // Prevent further actions
                 }
             }
+            function setInitialEnemyIcon() {
+    const randomIcon = enemyIcons[Math.floor(Math.random() * enemyIcons.length)];
+    document.getElementById('enemyIcon').innerHTML = `<img src="${randomIcon}" alt="Enemy Icon" width="50" height="50">`;
+}
 
+setInitialEnemyIcon(); // Set initial enemy icon
             rollDice(); // Initial dice roll at the start of the game
             updateHealth(); // Initial health bar update
         });
