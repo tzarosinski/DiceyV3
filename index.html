@@ -259,6 +259,7 @@
         const randomIcon = enemyIcons[Math.floor(Math.random() * enemyIcons.length)];
         addTrophy(`<img src="${randomIcon}" alt="Enemy Icon" width="20" height="20">`);
         enemyHp = 10; // Reset enemy health
+        updateHealthBar(enemyHealthBar, enemyHp, maxEnemyHp);
         enemyHpElement.textContent = enemyHp;
         rollDice(); // Roll dice for the new turn
         // Update the enemy icon
