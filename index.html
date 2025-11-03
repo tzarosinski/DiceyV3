@@ -203,30 +203,36 @@
                     const cardUsed = card.dataset.used === "true";
 
                     if (!cardUsed) {
-                        if (sourceDice.getAttribute('data-disabled') === 'true') {
+                        // Handle disabled dice damage immediately (synchronously)
+                        const isDisabled = sourceDice.getAttribute('data-disabled') === 'true';
+                        if (isDisabled) {
                             sourceDice.classList.add('shake');
-                            setTimeout(() => {
-                                playerHp -= 2;
-                                updateHealth();
-                                checkPlayerHealth();
-                            }, 500);
+                            playerHp -= 2;
                         }
 
+                        // Process ability effects
+                        let abilityProcessed = false;
                         if (cardRequirement === 'heal' && diceValue <= 3) {
-                            playerHp += diceValue; // Heal the player
+                            playerHp = Math.min(playerHp + diceValue, maxPlayerHp); // Heal with cap
                             card.dataset.used = "true";
+                            abilityProcessed = true;
                         } else if (cardRequirement === 'megastrike' && diceValue <= 4) {
                             enemyHp -= diceValue * 2; // Double damage
                             card.dataset.used = "true";
+                            abilityProcessed = true;
                         } else if (cardRequirement === 'odd' && diceValue % 2 !== 0) {
                             enemyHp -= diceValue;
+                            abilityProcessed = true;
                         } else if (cardRequirement === 'six' && diceValue === 6) {
-                            diceCount++; // Increase dice count for the next turn
+                            diceCount = Math.min(diceCount + 1, 8); // Cap at 8 dice max
+                            abilityProcessed = true;
                         } else if (cardRequirement === 'sword') {
                             enemyHp -= diceValue + 1;
-                            card.dataset.used = "true"
+                            card.dataset.used = "true";
+                            abilityProcessed = true;
                         } else if (cardRequirement === 'throw') {
                             enemyHp -= 1;
+                            abilityProcessed = true;
                         } else if (card.id === 'smashCard') {
                             let countdown = parseInt(card.dataset.countdown, 10);
                             countdown -= diceValue;
@@ -236,8 +242,19 @@
                             }
                             card.dataset.countdown = countdown; // Update countdown
                             card.textContent = `Smash: Countdown ${countdown}. Place any dice to reduce countdown. When countdown reaches 0, deal 10 damage.`;
+                            abilityProcessed = true;
                         }
-                        sourceDice.remove();
+
+                        // Remove dice (after shake animation if disabled)
+                        if (isDisabled) {
+                            setTimeout(() => {
+                                sourceDice.remove();
+                            }, 500);
+                        } else {
+                            sourceDice.remove();
+                        }
+
+                        // Batch all health updates and checks together (only once)
                         updateHealth();
                         checkEnemyHealth();
                         checkPlayerHealth();
@@ -254,23 +271,32 @@
             });
 
             function checkEnemyHealth() {
-    if (enemyHp <= 0) {
-        alert('Enemy defeated!');
-        const randomIcon = enemyIcons[Math.floor(Math.random() * enemyIcons.length)];
-        addTrophy(`<img src="${randomIcon}" alt="Enemy Icon" width="20" height="20">`);
-        enemyHp = 10; // Reset enemy health
-        updateHealthBar(enemyHealthBar, enemyHp, maxEnemyHp);
-        enemyHpElement.textContent = enemyHp;
-        rollDice(); // Roll dice for the new turn
-        // Update the enemy icon
-        document.getElementById('enemyIcon').innerHTML = `<img src="${randomIcon}" alt="Enemy Icon" width="50" height="50">`;
-    }
-}
-function addTrophy(iconHtml) {
-    const trophy = document.createElement('span');
-    trophy.innerHTML = iconHtml + " ";
-    document.getElementById('trophyLog').appendChild(trophy);
-}
+                if (enemyHp <= 0) {
+                    alert('Enemy defeated!');
+                    const randomIcon = enemyIcons[Math.floor(Math.random() * enemyIcons.length)];
+                    addTrophy(`<img src="${randomIcon}" alt="Enemy Icon" width="20" height="20" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','👹');">`);
+                    enemyHp = 10; // Reset enemy health
+                    updateHealthBar(enemyHealthBar, enemyHp, maxEnemyHp);
+                    enemyHpElement.textContent = enemyHp;
+                    rollDice(); // Roll dice for the new turn
+                    // Update the enemy icon with error handling
+                    document.getElementById('enemyIcon').innerHTML = `<img src="${randomIcon}" alt="Enemy Icon" width="50" height="50" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','👹 Enemy');">`;
+                }
+            }
+
+            function addTrophy(iconHtml) {
+                const trophyLog = document.getElementById('trophyLog');
+                const trophy = document.createElement('span');
+                trophy.innerHTML = iconHtml + " ";
+                trophy.className = 'trophy-item';
+                trophyLog.appendChild(trophy);
+
+                // Limit trophy log to 20 items to prevent memory leaks
+                const trophies = trophyLog.querySelectorAll('.trophy-item');
+                if (trophies.length > 20) {
+                    trophies[0].remove(); // Remove oldest trophy
+                }
+            }
 
             function checkPlayerHealth() {
                 if (playerHp <= 0) {
@@ -278,12 +304,13 @@ function addTrophy(iconHtml) {
                     document.getElementById('endTurn').style.display = 'none'; // Prevent further actions
                 }
             }
-            function setInitialEnemyIcon() {
-    const randomIcon = enemyIcons[Math.floor(Math.random() * enemyIcons.length)];
-    document.getElementById('enemyIcon').innerHTML = `<img src="${randomIcon}" alt="Enemy Icon" width="50" height="50">`;
-}
 
-setInitialEnemyIcon(); // Set initial enemy icon
+            function setInitialEnemyIcon() {
+                const randomIcon = enemyIcons[Math.floor(Math.random() * enemyIcons.length)];
+                document.getElementById('enemyIcon').innerHTML = `<img src="${randomIcon}" alt="Enemy Icon" width="50" height="50" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','👹 Enemy');">`;
+            }
+
+            setInitialEnemyIcon(); // Set initial enemy icon
             rollDice(); // Initial dice roll at the start of the game
             updateHealth(); // Initial health bar update
         });
